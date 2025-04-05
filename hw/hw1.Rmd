@@ -1,0 +1,112 @@
+---
+title: "STAT425 hw1"
+author: "Jiayi"
+date: "2024-09-02"
+output: html_document
+---
+
+#### Initial Setup
+```{r setup, include = False}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+``` {r load data}
+# URL to the dataset
+winner.url <- "https://users.stat.ufl.edu/~winner/data/"
+tmp.url <- paste0(winner.url, "cruise_ship.dat")
+
+# Column positions
+st <- c(1, 21, 41, 49, 57, 65, 73, 81, 89)
+en <- c(20, 40, 48, 56, 64, 72, 80, 88, 97)
+wds <- diff(c(st, en[length(en)]))
+
+# Reading the dataset
+cship <- read.fwf(tmp.url, widths = wds, strip.white = TRUE)
+
+# Setting column names
+colnames(cship) <- c("ShipName", "CruiseLine", "Age", "Tonnage", "Passengers", "Length", "Cabins", "PassengerDensity", "Crew")
+```
+
+*Q1*
+The summary statistics of the number of passengers and length of the ship are printed out.
+As shown by the mean, the average number of passengers of the ship is 1846, and the average length of the ship is 813.1 feet. When we look at the minimum value, we notice that the minimum number of passengers of the ship is 660, and the minimum length of the ship is 279 feet.
+
+``` {r summary}
+summary_passengers <- summary(cship$Passengers)
+summary_length <- summary(cship$Length)
+
+summary_passengers
+summary_length
+```
+
+*Q2*
+The plot is successfully drawn. As shown in the diagram, there is a positive relationship between the ship length and the number of passengers. It means that when the ship length increases, the number of passengers carried by that ship also increases. It seems to be a linear relationship, but we'll see later.
+``` {r plot}
+plot(cship$Length, cship$Passengers,
+     xlab = "Length of Ship (in 100s of feet)",
+     ylab = "Number of Passengers (in 100s)",
+     main = "Relationship between Ship Length and Number of Passengers")
+abline(lm(cship$Passengers ~ cship$Length))
+``` 
+
+*Q3*
+Compute correlation: 0.8835348
+``` {r correlation}
+correlation <- cor(cship$Length, cship$Passengers)
+correlation
+```
+
+*Q4*
+I use a linear model to fit the plot. I use the summary function to see the slope, which is 4.767313. It means that the number of passengers will increase by 478.7313 when the ship length increase by 100 feet.(adjust by the scale)
+``` {r linear model}
+# Fit the linear model
+model <- lm(Passengers ~ Length, data = cship)
+
+# Summary of the model to get the slope
+summary(model)
+
+# Extract the coefficient also works
+# slope <- coef(model)["Length"]
+# slope
+names(model)
+```
+
+*Q5*
+Estimate the mean number of passengers for ships that are 800 feet long.
+``` {r prediction}
+predicted_passengers <- predict(model, newdata = data.frame(Length = 8))
+predicted_passengers
+```
+
+*Q6*
+Estimate of the variance of the error should be the square of the residual standard error :D
+``` {r variance}
+error_variance <- summary(model)$sigma^2
+error_variance
+summary(model)$sigma
+```
+*Q7*
+Yes, the assumption is reasonable. It states that the variance of the residuals should be constant across all levels of the predictor variable. This means that the errors do not significantly change in size as the independent variable changes.
+
+My strategy is try to draw the residual and the fitted value and see whether there is a pattern. As shwon in the graph, there is no pattern, which shows that the spread of residuals is constant, so the assumption of constant error variance is reasonable.
+``` {r residual plot}
+plot(model$fitted.values, model$residuals, 
+     xlab = "Fitted Values", ylab = "Residuals", 
+     main = "Residuals vs Fitted Values")
+abline(h = 0, col = "red")
+```
+*Q8*
+Coefficient of determination R^2 is 0.7806337
+``` {r coefficient of determination}
+r_squared <- summary(model)$r.squared
+r_squared
+```
+
+*Q9*
+
+$ y_i = \beta_0 + \beta_1 x_{i} + \beta_2 x_{i}^2 + e_i$
+
+*Q10*
+
+$ \frac{d}{dx_i} E[y] = \beta_1 + 2\beta_2 x_i$
+

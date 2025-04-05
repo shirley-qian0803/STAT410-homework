@@ -1,0 +1,88 @@
+---
+title: "hw6"
+author: "Jiayi"
+date: "2024-10-21"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# Load necessary libraries
+library(alr4)  # For the lakemary dataset
+library(ggplot2)
+data("lakemary", package = "alr4")
+```
+
+Q1: (a)
+```{r simple-regression}
+# Fit simple linear regression model
+simple_model <- lm(Length ~ Age, data = lakemary)
+
+summary(simple_model)
+```
+
+Q1: (b)
+```{r}
+ggplot(lakemary, aes(x = Age, y = Length)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, color = "blue") +
+  labs(title = "Length vs Age with Simple Linear Regression Line")
+```
+
+
+Q1: (c)
+```{r}
+# Generate diagnostic plots
+par(mfrow = c(2, 2))
+plot(simple_model)
+```
+The Q-Q plot suggests that the residuals are fairly normal with some deviation at the tails, but the Residuals vs. Fitted plot reveals a non-linear trend. Therefore, the linear model does not fit the data perfectly, and it would be worth exploring a quadratic regression model to better capture the relationship between Age and Length. The residuals do not appear to be randomly scattered around zero; instead, there is a visible curved pattern.
+
+
+Q2: The lack-of-fit test is possible because it assesses whether a simpler model captures the data pattern adequately by comparing its residual sum of squares with that of a more complex model. Even though the error variance is unknown, the test relies on comparing two nested models, making it valid for use in this case. Moreover, there are some replication in the data.There are multiple observations for some Age values, allowing us to partition the residual sum of squares into pure error and lack of fit components.
+
+
+Q3: 
+```{r}
+# Perform an ANOVA to conduct the lack-of-fit test
+group_means <- aggregate(Length ~ Age, data = lakemary, FUN = mean)
+anova_simple <- anova(simple_model)
+anova_simple
+```
+The p-value is smaller than 2.2 * 10^(-16).
+
+
+Q4:(a)
+```{r}
+# Fit quadratic regression model
+lakemary$Age2 <- lakemary$Age^2  # Add Age^2 term to the data
+quad_model <- lm(Length ~ Age + Age2, data = lakemary)
+summary(quad_model)
+```
+
+Q4:(b)
+```{r}
+# Create plot with quadratic regression line
+ggplot(lakemary, aes(x = Age, y = Length)) +
+  geom_point() +
+  stat_smooth(method = "lm", formula = y ~ poly(x, 2), se = FALSE, color = "red") +
+  labs(title = "Length vs Age with Quadratic Regression Line")
+```
+
+Q4:(c)
+```{r}
+# Generate diagnostic plots for the quadratic model
+par(mfrow = c(2, 2))
+plot(quad_model)
+```
+The residuals appear more evenly spread around zero compared to the simple linear model, indicating that the quadratic model captures the relationship better. However, there is still some slight curvature, but it’s less pronounced, suggesting the quadratic model is an improvement over the linear one. The Q-Q plot shows that the residuals are close to normally distributed, with slight deviations at the tails.
+
+In summary, the quadratic model provides a better fit to the data compared to the simple linear model. While there are minor deviations from ideal assumptions, they are not severe, suggesting that the quadratic model is adequate for this dataset.
+
+Q5:
+```{r}
+# Perform an ANOVA to conduct the lack-of-fit test for quadratic model
+anova(quad_model)
+```
+The p-value is 3.675 * 10^(-6).
+The p-value is

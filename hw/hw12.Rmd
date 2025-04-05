@@ -1,0 +1,100 @@
+---
+title: "hw12"
+author: "Jiayi"
+date: "2024-12-14"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Q1.(a)
+```{r}
+# Load the necessary library
+library(faraway)
+
+# Load the dataset
+data(denim)
+
+fixed_model <- lm(waste ~ supplier, data = denim)
+summary(fixed_model)
+
+anova(fixed_model)
+
+```
+
+The p-value is 0.334, which is much larger than 0.05. Therefore, the supplier is not significant at 0.05.
+
+## Q1.(b)
+```{r}
+library(lme4)
+
+# Fit a mixed model with supplier as a random effect
+random_model <- lmer(waste ~ 1 + (1 | supplier), data = denim)
+summary(random_model)
+
+# Estimated variance components
+VarCorr(random_model)
+```
+The estimated variance components for the random effects model are as follows:
+
+	•	Variance for supplier: 0.6711
+	
+	•	Residual variance: 97.3350
+
+This indicates that the variability in waste is primarily due to residual variance, with a small contribution from variability between suppliers.
+
+## Q1.(c)
+```{r}
+# Compute ICC
+variance_components <- as.data.frame(VarCorr(random_model))
+icc <- variance_components$vcov[1] / sum(variance_components$vcov)
+icc
+```
+The intraclass correlation is 0.006847128.
+
+## Q1.(d)
+```{r}
+library(boot)
+
+# Parametric bootstrap for Supplier variance
+set.seed(123)
+boot_res <- bootMer(random_model, FUN = function(x) {
+  as.numeric(VarCorr(x)$supplier[1, 1])
+}, nsim = 1000, use.u = TRUE)
+
+# Bootstrap p-value
+observed_variance <- VarCorr(random_model)$supplier[1, 1]
+p_value <- mean(boot_res$t >= observed_variance)
+p_value
+```
+The p-value is 0.345.
+
+## Q2.(a)
+```{r}
+# Load the dataset
+data(eggprod)
+
+# Fit the mixed model
+egg_model <- lmer(eggs ~ treat + (1 | block), data = eggprod)
+summary(egg_model)
+
+library(emmeans)
+best_treatment <- emmeans(egg_model, "treat")
+print(best_treatment)
+```
+Treatment E is the best treatment, with significantly higher egg production compared to *Treatment O* (t=-3.056 gives a p-value 0.015 smaller than 0.05). Also, The confidence intervals for Treatments E and O do not overlap, which confirms the difference between them is statistically significant.
+
+
+However, Treatment E is *not significantly better than Treatment F* (t=-0.449 gives a p-value 0.667  smaller than 0.05). Also, the confidence intervals for Treatments E and F overlap, which means the difference between them is not statistically significant.
+
+## Q2.(b)
+```{r}
+# Test the significance of block effects using likelihood ratio test
+null_model <- lm(eggs ~ treat, data = eggprod)
+anova(egg_model, null_model)
+```
+The significant level is 0.4071, which is much larger than 0.05. This means the random effects for blocks are not significant.

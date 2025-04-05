@@ -1,0 +1,91 @@
+---
+title: "hw3"
+author: "Jiayi"
+date: "2024-09-23"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# Load the dataset
+hotel_energy <- read.csv("hotel_energy.csv")
+head(hotel_energy)
+summary(hotel_energy)
+```
+
+# Question 1: Multiple Linear Regression (Full Model)
+```{r}
+model_full <- lm(enrgcons ~ area + age + numrooms + occrate, data = hotel_energy)
+
+# Summary of the model
+summary(model_full)
+
+# Perform the overall F-test for the model using ANOVA
+anova(model_full)
+```
+The p-value: 1.92e-05, which is much smaller than 0.05, so we reject the null hypothesis. Therefore, we can conclude that the full model with area, age, numrooms, and occrate as predictors is statistically significant.
+
+# Question 2: Hypothesis Test for Area and Age Coefficients
+```{r}
+
+# Fit a reduced model excluding area and age
+model_reduced <- lm(enrgcons ~ numrooms + occrate, data = hotel_energy)
+
+# Perform ANOVA to compare full and reduced models
+anova(model_reduced, model_full)
+```
+The p-value for the F-test is 0.0003094, which is much smaller than the common significance level of 0.05. This means we can reject the null hypothesis. Therefore, we know that area and age have a significant impact on predicting energy consumption.
+
+
+# Question 3: 99% Confidence Interval for Mean Energy Consumption (using base R functions)
+```{r}
+third_quartile <- apply(hotel_energy[, c("area", "age", "numrooms", "occrate")], 2, quantile, 0.75)
+
+pred_data <- as.data.frame(t(third_quartile))
+mean_pred <- predict(model_full, newdata = pred_data, interval = "confidence", level = 0.99)
+mean_pred
+```
+Therefore, the 99% confidence interval for mean energy consumption is from 6413273 to 10701256.
+
+# Question 4: 99% Prediction Interval for the 17th Hotel
+```{r}
+hotel_17 <- hotel_energy[17,]
+pred_17 <- predict(model_full, newdata = hotel_17, interval = "prediction", level = 0.99)
+pred_17
+```
+Therefore, the 99% confidence interval for mean energy consumption is from 4862954 to 17586910.
+
+# Question 5: Correlation Matrix of Coefficients
+```{r}
+cov_matrix <- vcov(model_full)
+cor_matrix <- cov2cor(cov_matrix)
+cor_matrix
+```
+- Area vs. Age (-0.050): There is almost no correlation between the hotel’s area and its age. This implies that the size of the hotel is independent of how old the hotel is.
+- Area vs. Numrooms (-0.844): There’s a very strong negative correlation between the area and the number of rooms, which is somewhat unexpected. This could suggest multicollinearity, meaning that as the hotel’s area increases, the number of rooms decreases significantly, though this relationship may not make sense unless there’s a specific reason (e.g., different types of hotels or a strong impact of room size).
+- Area vs. Occrate (0.152): There is a weak positive correlation between area and occupancy rate. This suggests that larger hotels tend to have slightly higher occupancy rates.
+- Age vs. Numrooms (0.168): There is a weak positive correlation between the hotel’s age and the number of rooms, meaning that older hotels may tend to have slightly more rooms.
+- Age vs. Occrate (-0.380): There’s a moderate negative correlation between age and occupancy rate. This suggests that older hotels tend to have lower occupancy rates, which might make sense in the real world, as newer hotels might be more attractive to guests.
+- Numrooms vs. Occrate (-0.099): There is a very weak negative correlation between the number of rooms and occupancy rate. This suggests that the size of the hotel (in terms of rooms) has little to no effect on the occupancy rate.
+
+
+Q6:
+Each $Z_i^2$ follows a chi-square distribution with 1 degree of freedom. Hence:
+$ X_1 \sim \chi^2(p), \quad X_2 \sim \chi^2(n - p) $
+
+The distributions of $X_1$ and $X_2$ are chi-square distributions with $p$ and $n - p$ degrees of freedom, respectively.
+
+Therefore, the probability density function of $X_1$ is:
+$ f_{X_1}(x) = \frac{1}{2^{p/2}\Gamma(p/2)}x^{p/2-1}e^{-x/2}, \quad x > 0.$
+The probability density function of $X_2$ is:
+$f_{X_2}(x) = \frac{1}{2^{(n-p)/2}\Gamma((n-p)/2)}x^{(n-p)/2-1}e^{-x/2}, \quad x > 0.$
+
+Since $X_1$ and $X_2$ are the sums of squares of disjoint sets of independent standard normal variables $Z_1, Z_2, \dots, Z_p$ for $X_1$ and $Z_{p+1}, Z_{p+2}, \dots, Z_n$ for $X_2$, the two variables $X_1$ and $X_2$ are independent.
+
+Q7:
+The ratio of two independent chi-square distributions divided by their respective degrees of freedom follows an F-distribution. Therefore, $U$ follows an $F$ distribution with $p$ and $n - p$ degrees of freedom:
+$ U \sim F(p, n - p) $
+
+Q8:
+Since $Z_1 \sim N(0, 1)$ and $X_2 / (n - p)$ is the mean of independent chi-square random variables with $n - p$ degrees of freedom, the ratio follows a t-distribution with $n - p$ degrees of freedom. Therefore:
+$ \frac{Z_1}{\sqrt{X_2 / (n - p)}} \sim t(n - p) $

@@ -1,0 +1,141 @@
+---
+title: "hw7"
+author: "Jiayi"
+date: "2024-10-28"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+library(faraway)
+library(leaps)  
+```
+
+### Part 1: Prostate Data Analysis
+
+#### Load and Explore the Data
+
+```{r}
+data(prostate)
+str(prostate)
+summary(prostate)
+```
+
+#### (a) Backward Elimination with Alpha = 0.20
+
+```{r}
+model_full <- lm(lpsa ~ ., data = prostate)
+model_backward <- step(model_full, direction = "backward", k = qchisq(0.20, 1, lower.tail = FALSE))
+summary(model_backward)
+```
+
+#### (b), (c), (d) AIC, BIC, and Mallows Cp using leaps package
+
+```{r}
+leaps_result <- regsubsets(lpsa ~ ., data = prostate, nbest = 1)
+summary_leaps <- summary(leaps_result)
+
+# Number of observations
+n <- nrow(prostate)
+
+# Calculate AIC for each model
+aic_values <- numeric(length(summary_leaps$rss))
+for (i in 1:length(aic_values)) {
+  k <- sum(summary_leaps$which[i, ])  # Number of predictors (including intercept)
+  rss <- summary_leaps$rss[i]         # Residual Sum of Squares
+  aic_values[i] <- n * log(rss / n) + 2 * k
+}
+
+# Get the selected models' indices
+aic_model_index <- which.min(aic_values)
+bic_model_index <- which.min(summary_leaps$bic)
+cp_model_index <- which.min(summary_leaps$cp)
+
+
+# Extract the variables included in those models
+aic_model_vars <- names(which(summary_leaps$which[aic_model_index, ]))
+bic_model_vars <- names(which(summary_leaps$which[bic_model_index, ]))
+cp_model_vars <- names(which(summary_leaps$which[cp_model_index, ]))
+
+# Report the selected variables
+list(
+  AIC_Model_Vars = aic_model_vars,
+  BIC_Model_Vars = bic_model_vars,
+  Cp_Model_Vars = cp_model_vars
+)
+```
+
+#### (e) Stepwise Selection using AIC Criterion
+
+```{r}
+model_stepwise <- step(model_full, direction = "both", trace = 0)
+summary(model_stepwise)
+```
+The stepwise selection method, which uses AIC to determine the best model, selected lcavol (log cancer volume), lweight (log prostate weight), age, lbph (log benign prostatic hyperplasia), and svi (seminal vesicle invasion) as the most relevant predictors for lpsa (log prostate-specific antigen)
+
+
+### Part 2: TeenGamb Data Analysis
+
+#### Load and Explore the Data
+
+```{r}
+data(teengamb)
+str(teengamb)
+summary(teengamb)
+```
+
+
+#### (a) Backward Elimination with Alpha = 0.20
+
+```{r}
+model_full_gamble <- lm(gamble ~ ., data = teengamb)
+model_backward_gamble <- step(model_full_gamble, direction = "backward", k = qchisq(0.20, 1, lower.tail = FALSE))
+summary(model_backward_gamble)
+```
+
+#### (b), (c), (d) AIC, BIC, and Mallows Cp using leaps package
+
+```{r}
+leaps_result_gamble <- regsubsets(gamble ~ ., data = teengamb, nbest = 1)
+summary_leaps_gamble <- summary(leaps_result_gamble)
+
+# Number of observations
+n <- nrow(teengamb)
+
+# Calculate AIC for each model
+aic_values_gamble <- numeric(length(summary_leaps_gamble$rss))
+for (i in 1:length(aic_values_gamble)) {
+  k <- sum(summary_leaps_gamble$which[i, ])  # Number of predictors (including intercept)
+  rss <- summary_leaps_gamble$rss[i]         # Residual Sum of Squares
+  aic_values_gamble[i] <- n * log(rss / n) + 2 * k
+}
+
+# Get the model indices that minimize AIC, BIC, and Mallows Cp
+aic_model_index_gamble <- which.min(aic_values_gamble)
+bic_model_index_gamble <- which.min(summary_leaps_gamble$bic)
+cp_model_index_gamble <- which.min(summary_leaps_gamble$cp)
+
+# Extract the selected variables (removing intercept for clarity)
+aic_model_vars_gamble <- names(which(summary_leaps_gamble$which[aic_model_index_gamble, ]))[-1]
+bic_model_vars_gamble <- names(which(summary_leaps_gamble$which[bic_model_index_gamble, ]))[-1]
+cp_model_vars_gamble <- names(which(summary_leaps_gamble$which[cp_model_index_gamble, ]))[-1]
+
+# Print the selected variables for AIC, BIC, and Cp models
+cat("AIC Model Variables:", paste(aic_model_vars_gamble, collapse = ", "), "\n")
+cat("BIC Model Variables:", paste(bic_model_vars_gamble, collapse = ", "), "\n")
+cat("Cp Model Variables:", paste(cp_model_vars_gamble, collapse = ", "), "\n")
+```
+
+#### (e) Stepwise Selection using AIC Criterion
+
+```{r}
+model_stepwise_gamble <- step(model_full_gamble, direction = "both", trace = 0)
+summary(model_stepwise_gamble)
+```
+Three varibales: sex, income, verbal

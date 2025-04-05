@@ -1,0 +1,135 @@
+---
+title: "hw4"
+author: "Jiayi"
+date: "2024-09-30"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Q1:
+```{r}
+# Load the dataset
+hybrid_data <- read.csv("hybrid_reg.csv")
+
+# Fit the multiple linear regression model
+fit_hybrid <- lm(msrp ~ mpgmpge + accelrate, data = hybrid_data)
+
+# Calculate leverage
+leverage_values <- hatvalues(fit_hybrid)
+
+# Identify the observation with the largest leverage
+max_leverage_index <- which.max(leverage_values)
+highest_leverage_values <- hybrid_data[max_leverage_index, c("mpgmpge", "accelrate")]
+highest_leverage_values
+```
+
+Q2:
+```{r}
+# Get the values for the observation with the highest leverage
+highest_leverage_case <- hybrid_data[max_leverage, ]
+mean_values <- colMeans(hybrid_data[, c("mpgmpge", "accelrate")])
+
+# Display the values for comparison
+highest_leverage_case
+mean_values
+```
+The value for the highest leverage point is 100, which is much higher than the mean value of 38.45. This suggests that the vehicle corresponding to the highest leverage point is unusually fuel-efficient compared to the average vehicle in the dataset.
+
+The value for the highest leverage point is 11.76, which is slightly lower than the mean value of 11.96. This means the vehicle’s acceleration rate is close to the average acceleration rate in the dataset, but just a bit slower.
+
+The high fuel efficiency (mpgmpge) seems to be the key factor that makes this observation have a high leverage. A high leverage point often has predictor values that are far from the average, which is clearly the case for mpgmpge here. Since the acceleration rate (accelrate) is near the mean, it likely has less of an effect on leverage compared to mpgmpge.
+
+Q3:
+```{r}
+# Calculate the residuals
+residuals <- resid(fit_hybrid)
+
+# Find the observation with the largest residual
+largest_residual_index <- which.max(abs(residuals))
+max_residual_observation <- hybrid_data[largest_residual_index, ]
+max_residual_observation
+```
+
+Q4:
+```{r}
+# Calculate studentized residuals
+studentized_residuals <- rstudent(fit_hybrid)
+
+# Find the observation with the largest studentized residual
+largest_studentized_residual <- which.max(abs(studentized_residuals))
+max_studentized_observation <- hybrid_data[largest_studentized_residual, ]
+max_studentized_observation
+```
+
+
+Q5:
+```{r}
+# Plot studentized residuals versus least squares residuals
+plot(residuals, studentized_residuals, 
+     xlab = "Least Squares Residuals", 
+     ylab = "Studentized Residuals", 
+     main = "Studentized vs Least Squares Residuals")
+
+# Calculate the range of least squares residuals for the line
+x_range <- range(residuals)
+
+# Add the identity line (y = x) manually
+lines(x_range, x_range, col = "red", lwd = 2)  # Identity line
+```
+Studentized residuals are adjusted for variability in the model, considering factors like the leverage of each observation. On the other hand, least squares residuals are raw differences between observed and predicted values without these adjustments. Due to these additional considerations, studentized residuals tend to deviate slightly from least squares residuals.
+
+
+Q1:
+```{r}
+# Load the fuel2001.txt dataset
+fuel2001 <- read.table("fuel2001.txt", header = TRUE)
+
+# Display the first few rows of the dataset to verify
+head(fuel2001)
+
+# Fit the linear model
+fit_fuel <- lm(FuelC ~ Tax + Drivers + Income, data = fuel2001)
+
+# Calculate studentized residuals
+fuel_studentized_residuals <- rstudent(fit_fuel)
+fuel_studentized_residuals
+```
+
+Q2:
+```{r}
+# Perform outlier test without Bonferroni adjustment
+outlier_test <- rstudent(fit_fuel) 
+# Identify outliers using alpha = 0.05
+outliers <- which(abs(outlier_test) > qt(0.975, df = nrow(fuel2001) - 4)) 
+outliers
+```
+FL，NY, TX are outliers.
+
+Q3:
+```{r}
+# Perform outlier test with Bonferroni adjustment
+alpha_bonf <- 0.05 / nrow(fuel2001)  # Bonferroni adjustment
+outliers_bonf <- which(abs(outlier_test) > qt(1 - alpha_bonf / 2, df = nrow(fuel2001) - 4))  # Adjusted test
+outliers_bonf
+```
+NY, TX are outliers.
+
+Q4:
+Influential points are those with a Cook’s distance greater than 1 or significantly higher than other points, indicating that they have a large effect on the estimated regression coefficients. This also indicates that high influential points are either outliers or high-leverage points or both. 
+
+
+Q5:
+```{r}
+# Calculate Cook's distance
+cooks_distances <- cooks.distance(fit_fuel)
+
+# Identify any points with a Cook's distance greater than 1
+n <- nrow(hybrid_data)
+influential_points_4n <- which(cooks_distances > 1)
+influential_points_4n
+```
+There is no influential points.
+

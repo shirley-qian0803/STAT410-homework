@@ -1,0 +1,104 @@
+---
+title: "hw5"
+author: "Jiayi"
+date: "2024-10-06"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+fisherman_mercury <- read.csv("fishermen_mercury.csv")
+```
+### Part 1: Mercury Levels
+
+Q1: 
+I use a linear regression model to fit this data.
+```{r linear model}
+# Fit a linear model
+fit1 <- lm(TotHg ~ fisherman + height + weight, data = fisherman_mercury)
+summary(fit1)
+
+# Diagnostic plots
+par(mfrow = c(2, 2))
+plot(fit1)
+```
+The Residuals vs Fitted plot shows that the residuals are somewhat scattered around the zero line, indicating that there is no extreme bias. However, there is a slight curvature in the plot, suggesting a potential issue with non-linearity, meaning that the relationship between the predictors (fisherman, height, and weight) and the response variable (Total Mercury, TotHg) might not be fully captured by a simple linear model. 
+
+The Q-Q plot shows that the residuals follow the expected normal distribution fairly well, with most points lying along the straight line. However, there are slight deviations at the tails, particularly at the upper end (positive residuals), which suggests that the residuals are not perfectly normally distributed. This could indicate the presence of outliers or suggest that the model could benefit from a transformation of the response variable.
+
+Overall, the model fits the data reasonably but has issues with non-linearity and variance, which could be improved with a transformation.
+
+Q2: Transformation
+```{r Transformation}
+# Load necessary package
+library(MASS)
+
+# Box-Cox plot
+boxcox(fit1)
+```
+Based on the Box-Cox plot, y^{2/5} is a reasonable transformation for the response variable. This is because 0.4 falls within the 95% confidence interval shown in the plot.
+
+```{r}
+# Refit using the transformed response variable
+fisherman_mercury$TotHg_transformed <- fisherman_mercury$TotHg^(2/5)
+fit2 <- lm(TotHg_transformed ~ fisherman + height + weight, data = fisherman_mercury)
+summary(fit2)
+
+# Diagnostic plots for the new model
+par(mfrow = c(2, 2))
+plot(fit2)
+```
+As for the diagram of Residuals vs Fitted, the residuals seem more evenly scattered around zero compared to the original model, indicating that the transformed model is better. It captures the linear relationship between the predictors and the transformed response variable more.Moreover, there is less evidence of curvature, suggesting that the transformation helped address the issue of non-linearity. The Q-Q plot also shows that the residuals now follow the normal distribution more closely after the transformation, with less deviation at the tails compared to the original model.
+
+In summary, The diagnostic plots after transformation show that the assumptions of linearity, homoscedasticity, and normality of residuals are better satisfied. This indicates an improved model fitting the transformation.
+
+
+
+
+
+
+### Part 2: Trees Data
+Q3: Take log of both sides to get a linear model
+```{r}
+# Apply log transformation
+trees$log_volume <- log(trees$Volume)
+trees$log_girth <- log(trees$Girth)
+trees$log_height <- log(trees$Height)
+```
+
+```{r}
+# Fit linear model
+fit_trees <- lm(log_volume ~ log_girth + log_height, data = trees)
+summary(fit_trees)
+```
+
+Q4:
+```{r}
+# Diagnostic plots
+par(mfrow = c(2, 2))
+plot(fit_trees)
+
+```
+If we look at the Residued vs Fitted plot first,	the residuals are scattered fairly evenly around the zero line, indicating that the model does not show strong signs of non-linearity. However, the pattern appears a bit clustered around certain fitted values, suggesting that there might be slight under- or over-predictions in specific ranges of the data. There isn’t strong evidence of heteroscedasticity.
+
+In summary, the model appears to fit the data reasonably well. The residuals are mostly normally distributed and homoscedastic, with no extreme outliers or influential leverage points. However, minor deviations at the extremes of the Q-Q plot suggest that the model could be improved slightly by addressing potential outliers or further exploring interactions between predictors.
+
+Q5
+```{r}
+# Confidence intervals
+confint(fit_trees)
+```
+Yes, CI contains the theoretical value. Theta1 is 2, which is within the range of 1.828998 and 2.136302.Theta2 is 1, which is within the range of 0.698353 and 1.535894
+Q6:
+```{r}
+# Prediction interval
+new_tree <- data.frame(log_girth = log(10.9), log_height = log(75))
+predict(fit_trees, newdata = new_tree, interval = "prediction")
+```
+The prediction is around 2.92763, with a lower bound and a higher bound of 2.75656 and 3.0987 accordingly.
+Q7:
+```{r}
+# Transform back to original scale
+exp(predict(fit_trees, newdata = new_tree, interval = "prediction"))
+```
+The final prediction interval is around 18.6833(in cubic feet), with a lower bound and a higher bound of 15.74559 and 22.1691 accordingly.

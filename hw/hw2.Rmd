@@ -1,0 +1,128 @@
+---
+title: "hw2"
+author: "Jiayi"
+date: "2024-09-13"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r loadData}
+# I download the cship database on my computer. Put it in the same folder with my code. Then, I read csv directly.
+cship <- read.csv("cship.csv")
+head(cship)
+```
+
+Q1:
+```{r loadData}
+# Construct the design matrix X using Age, Tonnage, and Length as explanatory variables with an intercept
+X <- as.matrix(cbind(1, cship$Age, cship$Tonnage, cship$Length)) # cbind means column binding things together
+
+head(X)
+```
+
+Q2:Compute X′X and X′y: two matrices are printed out
+```{r X′X}
+XtX <- t(X) %*% X
+y <- cship$passengers
+Xty <- t(X) %*% y
+
+XtX
+Xty
+```
+
+Q3: Find the eigenvalues of X′X
+```{r eigenvalue}
+eigenvalues <- eigen(XtX)$values
+eigenvalues
+```
+
+Q4: Compute the inverse of X′X
+```{r inverse}
+XtX_inv <- solve(XtX)
+XtX_inv
+
+```
+Q5: Find the column rank of  X
+```{r column_rank}
+rank_X <- qr(X)$rank
+rank_X
+```
+
+Q6: Compute βˆ (the regression coefficients)
+```{r regression_coefficient}
+beta_hat <- XtX_inv %*% Xty
+beta_hat
+```
+Q7: 
+The first value in beta_hat is the intercept, and the remaining values are the coefficients for Age, Tonnage, and Length. Each coefficient indicates the change in the predicted number of passengers for a one-unit increase in the corresponding variable, holding the other variables constant.
+
+To illustrate, for each additional year of age of the ship, the number of passengers is expected to increase by approximately 11.27 passengers, assuming that the tonnage and length are held constant. For each additional *thousand tons* of ship weight (tonnage), the number of passengers is expected to increase by approximately 24.45 passengers passengers, assuming that age and length are held constant. For each additional *hundred feet* in the length of the ship, the number of passengers is expected to increase by approximately 34.06 passengers, assuming that age and tonnage are held constant.
+
+Q8:
+```{r prediction}
+# Compute the average of each explanatory variable
+x_avg <- colMeans(X)
+
+# Predict the number of passengers for the average ship
+y_avg_predicted <- sum(x_avg * beta_hat)
+y_avg_predicted
+```
+
+Q9: Compute y_hat and find RSS
+```{r y_hat}
+# Compute the predicted values
+y_hat <- X %*% beta_hat
+
+# Compute the residual sum of squares (RSS)
+RSS <- sum((y - y_hat)^2)
+
+# Display RSS
+RSS
+```
+Therefore, RSS is 1484.756.
+
+Q10: Compute (σ_hat)^2
+```{r σ_hat_square}
+n <- length(y)
+p <- ncol(X) - 1  # Number of explanatory variables
+sigma2_hat <- RSS / (n - p - 1)
+
+# Display sigma^2
+sigma2_hat
+```
+Therefore, sigma squared is 9.641271. 
+
+Q11: Covariance matrix of β_hat
+```{r y_hat_covariance_matrix}
+# Estimate the covariance matrix of beta hat
+cov_beta_hat <- sigma2_hat * XtX_inv
+
+# Display the covariance matrix
+cov_beta_hat
+```
+Q12: Compute R^2
+```{r r_squared}
+# Compute the total sum of squares (TSS)
+TSS <- sum((y - mean(y))^2)
+
+# Compute the R-squared
+R_squared <- 1 - (RSS / TSS)
+
+R_squared
+```
+Therefore, R − Squared is 0.899013.
+
+Q13: Find the ship with the largest residual
+```{r largest_residual}
+# Compute the residuals
+residuals <- y - y_hat
+
+# Find the ship with the largest residual
+largest_residual_ship <- cship$ShipName[which.max(abs(residuals))] # using the index
+```
+"Queen Mary 2" is the ship with the largest residual.

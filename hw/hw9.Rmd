@@ -1,0 +1,93 @@
+---
+title: "hw9"
+author: "Jiayi"
+date: "2024-11-10"
+output:
+  pdf_document: 
+    latex_engine: xelatex
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(faraway)
+library(dplyr)
+library(car)
+library(multcomp)
+library(DescTools)
+library(ggplot2)
+library(lmtest)
+```
+
+Load data
+```{r}
+data("chickwts", package = "faraway")
+head(chickwts)
+```
+
+### 1. Fit One-Way ANOVA Model
+```{r}
+anova_model <- aov(weight ~ feed, data = chickwts)
+summary(anova_model)
+```
+The p-value is 5.94 * 10^−10, much less than 0.05. Therefore, we have strong evidence to reject the hypothesis of the same mean weights. Thus, the mean weights of chicks differ significantly across different feed types.
+
+
+### 2. 95% Confidence Intervals for Mean Weight by Feed
+```{r}
+# Calculate group means and 95% CIs
+ci_results <- confint(lm(weight ~ feed - 1, data = chickwts))
+ci_results
+```
+
+### 3. Tukey’s Pairwise Comparisons
+```{r}
+tukey_results <- TukeyHSD(anova_model)
+tukey_results
+```
+Based on the Tukey’s HSD test with a 0.05 significance level,
+
+Some of the **p-value in the p adj column is below 0.05**, it indicates a statistically significant difference in mean weights between the two feeds.Some examples may include horsebean-casein, linseed - casein, soybean-casein, meatmeal-horsebean, soybean-horsebean, sunflower-horsebean, sunflower-linseed, and sunflower-soybean.
+
+Some of the **p-value is above 0.05**, there is no significant difference in mean weights between those feeds.This includes meatmeal-casein, sunflower-casein, linseed-horsebean, meatmeal-linseed, soybean-linseed, soybean-meatmeal, and sunflower-meatmeal.
+
+We can also tell the difference from the **confidence level**. If the confidence interval (lwr and upr) **does not include zero**, it suggests a statistically significant difference in means. If it includes zero, it means that the difference is not statistically significant. 
+
+e.g. **horsebean - casein**: The interval [-232.35, -94.42] **does not include zero**, reinforcing the significant difference. **sunflower - casein**: The interval [-60.42, 71.09] includes zero, meaning there’s no significant difference.
+
+
+
+###  4. Check for Outliers Using Bonferroni Correction
+```{r}
+# Identify potential outliers using Bonferroni correction
+outliers <- chickwts %>%
+  mutate(studentized_residuals = rstudent(anova_model)) %>%
+  filter(abs(studentized_residuals) > qt(1 - 0.05 / n(), df.residual(anova_model)))
+outliers
+```
+This means no outliers here.
+
+###  5. Test for Constant Error Variance
+```{r}
+# Perform levene test for homogeneity of variances
+levene_test <- anova(lm(abs(residuals(anova_model)) ~ feed, data = chickwts))
+levene_test
+```
+The p-value is 0.4324, which is much above 0.05, we have no sufficent evidence to reject the null hypothesis of constant variance.
+
+### 6. Checking Normality of Errors
+```{r}
+# QQ Plot
+ggplot(data.frame(residuals = residuals(anova_model)), aes(sample = residuals)) +
+  stat_qq() +
+  stat_qq_line() +
+  labs(title = "Normal Q-Q Plot for Residuals")
+
+# Shapiro-Wilk test for normality
+shapiro_test <- shapiro.test(residuals(anova_model))
+shapiro_test$p.value
+```
+
+Based on the QQ-plot, we can see that the residuals appear to follow a roughly normal distribution, especially in the main range of values, with only minor deviations in the tails.
+
+This suggests that the normality assumption for the residuals is reasonably satisfied for the purposes of ANOVA. Minor deviations at the tails are generally acceptable, as ANOVA is robust to slight non-normality.

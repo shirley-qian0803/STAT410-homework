@@ -1,0 +1,143 @@
+---
+title: "hw8"
+author: "Jiayi"
+date: "2024-10-31"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup}
+knitr::opts_chunk$set(echo = TRUE)
+library(faraway)      # Contains the datasets
+library(ggplot2)      # For data visualization
+library(pls)          # For principal component regression (PCR)
+library(glmnet)       # For ridge and lasso regression
+library(MASS) 
+library(ModelMetrics) # For RMSE calculation
+library(dplyr)
+```
+
+# Problem 1:
+
+1.(a)
+```{r load data}
+data(seatpos)
+?seatpos 
+
+# Define response and explanatory variables
+y <- seatpos$hipcenter
+X <- seatpos %>% dplyr::select(-hipcenter) # Exclude hipcenter for predictors
+```
+
+
+### PCA without Scaling
+```{r}
+# Perform PCA without scaling
+pca_no_scale <- prcomp(X, scale = FALSE)
+U_no_scale <- pca_no_scale$rotation
+
+# Display the loading matrix U without scaling
+print("Loading matrix U without scaling:")
+U_no_scale
+```
+
+### Perform PCA with scaling
+
+```{r}
+pca_scaled <- prcomp(X, scale = TRUE)
+U_scaled <- pca_scaled$rotation
+
+# Display the loading matrix U with scaling
+print("Loading matrix U with scaling:")
+U_scaled
+```
+
+
+1. (b)
+Yes, scaling helps in this case. Since the variables likely have different units and ranges (e.g., Weight versus Arm or Leg length), scaling normalizes their contribution to the principal components. This prevents variables with larger scales from dominating the analysis, providing a more interpretable and balanced principal component structure.
+
+I'll explain this by looking at two charts.
+Chart1: Without Scaling: The loadings for each principal component are heavily influenced by the variables with larger absolute values (like Weight and hipcenter). This is because variables with larger variances tend to dominate the first few components in unscaled PCA, leading to biased interpretations.
+Chart2: With Scaling: After scaling, each variable has a mean of zero and a standard deviation of one, so each variable contributes equally to the principal components regardless of their original units. The loadings are now more balanced, and the PCA reflects the underlying structure of the data rather than being skewed by the scale of individual variables.
+
+1. (c)
+```{r}
+# Calculate % variance explained by each component
+var_explained <- pca_scaled$sdev^2 / sum(pca_scaled$sdev^2) * 100
+cum_var_explained <- cumsum(var_explained)
+
+# Plot cumulative variance explained
+ggplot(data.frame(Components = 1:length(var_explained), Variance = cum_var_explained), aes(x = Components, y = Variance)) +
+  geom_line() + geom_point() +
+  labs(title = "Cumulative Variance Explained by Principal Components", x = "Number of Components", y = "Cumulative % Variance Explained") +
+  theme_minimal()
+```
+
+1.(d)
+```{r}
+# Perform PCR with cross-validation to select optimal number of components
+pcr_model <- pcr(hipcenter ~ ., data = seatpos, scale = TRUE, validation = "CV")
+
+# Plot RMSEP to find optimal components
+validationplot(pcr_model, val.type = "RMSEP")
+
+summary(pcr_model)
+```
+
+# Problem 2:
+```{r}
+data(fat)
+
+X_fat <- as.matrix(fat[, c("neck", "chest", "abdom", "hip", "thigh", "knee", "ankle", "biceps", "forearm", "wrist")])
+y_fat <- fat$brozek
+
+# Split data into training and testing sets
+set.seed(123)
+train_indices <- sample(1:nrow(X_fat), 0.7 * nrow(X_fat))
+X_train <- X_fat[train_indices, ]
+y_train <- y_fat[train_indices]
+X_test <- X_fat[-train_indices, ]
+y_test <- y_fat[-train_indices]
+```
+
+
+```{r}
+# Ridge Regression with Cross-Validation
+ridge_cv_fat <- cv.glmnet(X_train, y_train, alpha = 0)  # alpha = 0 for Ridge
+ridge_model_fat <- glmnet(X_train, y_train, alpha = 0, lambda = ridge_cv_fat$lambda.min)
+
+# Ridge Regression Coefficients
+print("Ridge Regression Coefficients:")
+print(coef(ridge_model_fat))
+
+# Predict and calculate RMSE for Ridge Regression on the test set
+ridge_pred <- predict(ridge_model_fat, X_test, s = ridge_cv_fat$lambda.min)
+ridge_rmse <- sqrt(mean((y_test - ridge_pred)^2))
+paste("RMSE for Ridge Regression on Test Set:", ridge_rmse)
+```
+Results for Ridge Regression:
+- Coefficients: Ridge regression retained all predictors with shrunk coefficients.
+- RMSE: 3.86956312259966.
+
+All predictors have non-zero coefficients because Ridge regression shrinks the coefficients towards zero but doesn’t set them to zero. 
+Ridge retains all predictors with reduced magnitudes, useful when we believe most predictors contribute to the response.
+```{r}
+# LASSO Regression with Cross-Validation
+lasso_cv_fat <- cv.glmnet(X_train, y_train, alpha = 1)  # alpha = 1 for LASSO
+lasso_model_fat <- glmnet(X_train, y_train, alpha = 1, lambda = lasso_cv_fat$lambda.min)
+
+# LASSO Regression Coefficients
+print("LASSO Regression Coefficients:")
+print(coef(lasso_model_fat))
+
+# Predict and calculate RMSE for LASSO Regression on the test set
+lasso_pred <- predict(lasso_model_fat, X_test, s = lasso_cv_fat$lambda.min)
+lasso_rmse <- sqrt(mean((y_test - lasso_pred)^2))
+paste("RMSE for LASSO Regression on Test Set:", lasso_rmse)
+```
+Results for LASSO Regression:
+- Coefficients: LASSO set thigh and knee coefficients to zero.
+- RMSE: 3.80129174946318 (LASSO shows a better fit than Ridge in this case. The model performs well.)
+
+LASSO eliminates less important predictors, performing both variable selection and regularization, which is helpful when you suspect that only a few predictors are truly important.
